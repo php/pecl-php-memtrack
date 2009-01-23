@@ -1,0 +1,8 @@
+// $Id$
+// vim:ft=javascript
+
+ARG_ENABLE("memtrack", "Enable memtrack support", "no");
+
+if (PHP_MEMTRACK == "yes") {
+	EXTENSION("memtrack", "memtrack.c");
+}
