@@ -46,50 +46,16 @@ void memtrack_execute(zend_op_array *op_array TSRMLS_DC);
 void (*memtrack_old_execute_internal)(zend_execute_data *current_execute_data, int return_value_used TSRMLS_DC);
 void memtrack_execute_internal(zend_execute_data *current_execute_data, int return_value_used TSRMLS_DC);
 
-/* Linux only func */
-#if defined(__linux__)
-#include <fcntl.h>
-#define MEMTRACK_HAVE_VM_SIZE
+#ifdef PHP_MEMTRACK_HAVE_MALLINFO
+# ifdef HAVE_MALLOC_H
+#  include <malloc.h>
+# endif
 static int memtrack_get_vm_size(void) /* {{{ */
 {
-	char ret[128] = {0};
-	char buf[4096 /* XXX */], *str, *end;
-	int fd, buf_len;
-	char fname[128] = {0};
-	pid_t pid = getpid();
-
-	sprintf(fname, "/proc/%d/status", pid);
+	struct mallinfo info;
 	
-	fd = open(fname, O_RDONLY);
-	if (fd < 0) {
-		return -1;
-	}
-
-	buf_len = read(fd, buf, sizeof(buf));
-	if (buf_len <= 0) {
-		close(fd);
-		return -1;
-	}
-
-	str = strstr(buf, "VmSize:");
-	if (!str || (str + sizeof("VmSize:")) >= (buf + buf_len)) {
-		close(fd);
-		return -1;
-	}
-
-	str += sizeof("VmSize:");
-	end = strchr(str, '\n');
-	if (!end) {
-		close(fd); 
-		return -1;
-	}
-
-	memcpy(ret, str, (end - str));
-	ret[end - str] = 0;
-
-	close(fd);
-
-	return atoi(ret);
+	info = mallinfo();
+	return info.arena + info.hblkhd;
 }
 /* }}} */
 #endif
@@ -216,7 +182,7 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("memtrack.enabled",         "0", PHP_INI_SYSTEM, OnUpdateBool, enabled, zend_memtrack_globals, memtrack_globals)
     STD_PHP_INI_ENTRY("memtrack.soft_limit",      "0", PHP_INI_ALL, OnUpdateLong, soft_limit, zend_memtrack_globals, memtrack_globals)
     STD_PHP_INI_ENTRY("memtrack.hard_limit",      "0", PHP_INI_ALL, OnUpdateLong, hard_limit, zend_memtrack_globals, memtrack_globals)
-#ifdef MEMTRACK_HAVE_VM_SIZE
+#ifdef PHP_MEMTRACK_HAVE_MALLINFO
     STD_PHP_INI_ENTRY("memtrack.vm_limit",        "0", PHP_INI_ALL, OnUpdateLong, vm_limit, zend_memtrack_globals, memtrack_globals)
 #endif
     STD_PHP_INI_ENTRY("memtrack.ignore_functions", "", PHP_INI_SYSTEM, OnUpdateString, ignore_functions, zend_memtrack_globals, memtrack_globals)
@@ -283,13 +249,12 @@ PHP_RSHUTDOWN_FUNCTION(memtrack)
 
 	zend_hash_destroy(&MEMTRACK_G(ignore_funcs_hash));
 
-#ifdef MEMTRACK_HAVE_VM_SIZE
+#ifdef PHP_MEMTRACK_HAVE_MALLINFO
 	if (MEMTRACK_G(vm_limit) > 0) {
 		int vmsize = memtrack_get_vm_size();
-		long lvmsize = vmsize * 1024;
 
-		if (lvmsize > 0 && lvmsize >= MEMTRACK_G(vm_limit)) {
-			zend_error(E_WARNING, "[memtrack] [pid %d] virtual memory usage on shutdown: %ld bytes", getpid(), lvmsize);
+		if (vmsize > 0 && vmsize >= MEMTRACK_G(vm_limit)) {
+			zend_error(E_WARNING, "[memtrack] [pid %d] virtual memory usage on shutdown: %d bytes", getpid(), vmsize);
 		}
 	}
 #endif

@@ -29,6 +29,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
  <notes>- added Win32 config file.
+- changed vm_limit to use mallinfo() instead of reading /proc.
  </notes>
  <contents>
   <dir name="/">
