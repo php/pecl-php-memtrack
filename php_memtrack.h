@@ -21,6 +21,8 @@
 #ifndef PHP_MEMTRACK_H
 #define PHP_MEMTRACK_H
 
+#define PHP_MEMTRACK_VERSION "0.1.0"
+
 extern zend_module_entry memtrack_module_entry;
 #define phpext_memtrack_ptr &memtrack_module_entry
 

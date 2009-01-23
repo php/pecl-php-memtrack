@@ -331,7 +331,7 @@ zend_module_entry memtrack_module_entry = {
 	PHP_RSHUTDOWN(memtrack),
 	PHP_MINFO(memtrack),
 #if ZEND_MODULE_API_NO >= 20010901
-	"0.1",
+	PHP_MEMTRACK_VERSION,
 #endif
 	STANDARD_MODULE_PROPERTIES
 };
