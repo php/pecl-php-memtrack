@@ -60,21 +60,35 @@ static int memtrack_get_vm_size(void) /* {{{ */
 /* }}} */
 #endif
 
-static char *mt_get_function_name(TSRMLS_D) /* {{{ */
+static char *mt_get_function_name(zend_op_array *op_array TSRMLS_DC) /* {{{ */
 {
 	char *current_fname = NULL;
 	char *class_name, *fname;
 	zend_bool free_fname = 0;
 	int class_name_len, fname_len;
 	zend_execute_data *exec_data = EG(current_execute_data);
+	zend_class_entry *ce;
 	char *space;
-
-	class_name = get_active_class_name(&space TSRMLS_CC);
-
-	if (space[0] == '\0') {
-		current_fname = get_active_function_name(TSRMLS_C);
+	
+	if (op_array) {
+		ce = ((zend_function *)op_array)->common.scope;
+		class_name = ce ? ce->name : "";
 	} else {
-		fname = get_active_function_name(TSRMLS_C);
+		class_name = get_active_class_name(&space TSRMLS_CC);
+	}
+
+	if (class_name[0] == '\0') {
+		if (op_array) {
+			current_fname = op_array->function_name;
+		} else {
+			current_fname = get_active_function_name(TSRMLS_C);
+		}
+	} else {
+		if (op_array) {
+			fname = op_array->function_name;
+		} else {
+			fname = get_active_function_name(TSRMLS_C);
+		}
 		if (fname) {
 			class_name_len = strlen(class_name);
 			fname_len = strlen(fname);
@@ -254,7 +268,7 @@ PHP_RSHUTDOWN_FUNCTION(memtrack)
 		int vmsize = memtrack_get_vm_size();
 
 		if (vmsize > 0 && vmsize >= MEMTRACK_G(vm_limit)) {
-			zend_error(E_WARNING, "[memtrack] [pid %d] virtual memory usage on shutdown: %d bytes", getpid(), vmsize);
+			zend_error(E_CORE_WARNING, "[memtrack] [pid %d] virtual memory usage on shutdown: %d bytes", getpid(), vmsize);
 		}
 	}
 #endif
@@ -328,14 +342,14 @@ void memtrack_execute(zend_op_array *op_array TSRMLS_DC) /* {{{ */
 			int lineno = (EG(current_execute_data) && EG(current_execute_data)->opline) ? EG(current_execute_data)->opline->lineno : 0;
 			int fname_len;
 
-			fname = mt_get_function_name(TSRMLS_C);
+			fname = mt_get_function_name(op_array TSRMLS_CC);
 			fname_len = strlen(fname);
 
 			lc_fname = estrndup(fname, fname_len);
 			zend_str_tolower(lc_fname, fname_len);
 
 			if (usage_diff >= MEMTRACK_G(hard_limit) || zend_hash_exists(&MEMTRACK_G(ignore_funcs_hash), lc_fname, fname_len + 1) == 0) {
-				zend_error(E_WARNING, "[memtrack] [pid %d] user function %s() executed in %s on line %d allocated %ld bytes", getpid(), fname, filename, lineno, usage_diff);
+				zend_error(E_CORE_WARNING, "[memtrack] [pid %d] user function %s() executed in %s on line %d allocated %ld bytes", getpid(), fname, filename, lineno, usage_diff);
 				MEMTRACK_G(warnings)++;
 			}
 			efree(fname);
@@ -364,7 +378,7 @@ void memtrack_execute_internal(zend_execute_data *current_execute_data, int retu
 		}
 
 		if (usage_diff >= MEMTRACK_G(soft_limit)) {
-			char *lc_fname, *fname = mt_get_function_name(TSRMLS_C);
+			char *lc_fname, *fname = mt_get_function_name(NULL TSRMLS_CC);
 			int lineno = (current_execute_data && current_execute_data->opline) ? current_execute_data->opline->lineno : 0;
 			char *filename = (current_execute_data && current_execute_data->op_array) ? current_execute_data->op_array->filename : "unknown";
 			int fname_len;
@@ -375,7 +389,7 @@ void memtrack_execute_internal(zend_execute_data *current_execute_data, int retu
 			zend_str_tolower(lc_fname, fname_len);
 
 			if (usage_diff >= MEMTRACK_G(hard_limit) || zend_hash_exists(&MEMTRACK_G(ignore_funcs_hash), lc_fname, fname_len + 1) == 0) {
-				zend_error(E_WARNING, "[memtrack] [pid %d] internal function %s() executed in %s on line %d allocated %ld bytes", getpid(), fname, filename, lineno, usage_diff);
+				zend_error(E_CORE_WARNING, "[memtrack] [pid %d] internal function %s() executed in %s on line %d allocated %ld bytes", getpid(), fname, filename, lineno, usage_diff);
 				MEMTRACK_G(warnings)++;
 			}
 			efree(fname);
