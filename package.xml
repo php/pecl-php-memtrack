@@ -17,19 +17,18 @@ http://pear.php.net/dtd/package-2.0.xsd">
   <email>tony2001@php.net</email>
   <active>yes</active>
  </lead>
- <date>2010-04-26</date>
- <time>13:00:00</time>
+ <date>2011-09-27</date>
+ <time>16:00:00</time>
  <version>
-  <release>0.2.0</release>
-  <api>0.2.0</api>
+  <release>0.2.1</release>
+  <api>0.2.1</api>
  </version>
  <stability>
   <release>beta</release>
   <api>beta</api>
  </stability>
  <license uri="http://www.php.net/license">PHP</license>
- <notes>- added Win32 config file.
-- changed vm_limit to use mallinfo() instead of reading /proc.
+ <notes>- fixed PECL bug #23826 (memtrack breaks suhosin checks).
  </notes>
  <contents>
   <dir name="/">
@@ -55,6 +54,14 @@ http://pear.php.net/dtd/package-2.0.xsd">
  <providesextension>memtrack</providesextension>
  <extsrcrelease/>
  <changelog>
+  <release>
+   <stability><release>beta</release><api>beta</api></stability>
+   <version><release>0.2.0</release><api>0.2.0</api></version>
+   <date>2010-04-26</date>
+    <notes>- added Win32 config file.
+- changed vm_limit to use mallinfo() instead of reading /proc.
+   </notes>
+  </release>
   <release>
    <stability><release>beta</release><api>beta</api></stability>
    <version><release>0.1.0</release><api>0.1.0</api></version>
