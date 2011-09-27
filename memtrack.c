@@ -364,13 +364,13 @@ void memtrack_execute(zend_op_array *op_array TSRMLS_DC) /* {{{ */
 void memtrack_execute_internal(zend_execute_data *current_execute_data, int return_value_used TSRMLS_DC) /* {{{ */
 {
 	if (MEMTRACK_G(soft_limit) <= 0 && MEMTRACK_G(hard_limit) <= 0) {
-		execute_internal(current_execute_data, return_value_used TSRMLS_CC);
+		memtrack_old_execute_internal(current_execute_data, return_value_used TSRMLS_CC);
 	} else {
 		size_t memory_usage_start = 0, memory_usage_final = 0;
 		size_t usage_diff = 0;
 
 		memory_usage_start = zend_memory_usage(1 TSRMLS_CC);
-		execute_internal(current_execute_data, return_value_used TSRMLS_CC);
+		memtrack_old_execute_internal(current_execute_data, return_value_used TSRMLS_CC);
 		memory_usage_final = zend_memory_usage(1 TSRMLS_CC);
 
 		if (memory_usage_final >= memory_usage_start) {
